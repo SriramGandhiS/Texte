@@ -1,0 +1,14 @@
+{
+  "name": "krs-question-paper-tool",
+  "version": "1.0.0",
+  "description": "KRS school question paper generator with local Ollama AI assistant",
+  "private": true,
+  "scripts": {
+    "start": "node server/local-server.js",
+    "dev": "node server/local-server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["krs", "question-paper", "cbse", "ollama", "school"]
+}
