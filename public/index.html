@@ -1,0 +1,2345 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KRS Question Paper Tool</title>
+  <style>
+    :root {
+      --bg: #f5f4ef;
+      --panel: #fffdf8;
+      --ink: #26231f;
+      --muted: #6b645b;
+      --line: #d9d2c6;
+      --accent: #2f5d50;
+      --accent-dark: #24483e;
+      --danger: #9b332c;
+      --warn: #b56a18;
+      --paper-width: 794px;
+      --paper-height: 1123px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: minmax(360px, 520px) minmax(620px, 1fr);
+      gap: 22px;
+      min-height: 100dvh;
+      padding: 18px;
+    }
+
+    body.ai-focus .app-shell {
+      grid-template-columns: 1fr;
+      padding: 12px;
+    }
+
+    body.ai-focus .preview-pane {
+      display: none;
+    }
+
+    body.ai-focus .editor {
+      max-height: calc(100dvh - 24px);
+      height: calc(100dvh - 24px);
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    body.ai-focus .editor-header,
+    body.ai-focus .tabs,
+    body.ai-focus .open-server-banner,
+    body.ai-focus .status-banner {
+      display: none;
+    }
+
+    body.ai-focus #paperTab {
+      display: none !important;
+    }
+
+    body.ai-focus #aiTab {
+      flex: 1;
+      display: flex !important;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .editor {
+      overflow: auto;
+      max-height: calc(100dvh - 36px);
+      padding: 22px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 18px 42px -30px rgba(31, 27, 23, 0.45);
+    }
+
+    .editor-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 24px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .status-banner {
+      display: none;
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      border: 1px solid #e4bf86;
+      border-radius: 6px;
+      background: #fff4dd;
+      color: #6f3f08;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .status-banner.show {
+      display: block;
+    }
+
+    .status-banner.blink {
+      animation: blinkWarning 900ms ease-in-out 3;
+    }
+
+    @keyframes blinkWarning {
+      0%, 100% { background: #fff4dd; }
+      50% { background: #ffd27f; }
+    }
+
+    .open-server-banner {
+      display: none;
+      margin-bottom: 14px;
+      padding: 12px;
+      border: 1px solid #bfd4c8;
+      border-radius: 8px;
+      background: #f7fbf8;
+      color: #24483e;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .open-server-banner.show {
+      display: block;
+    }
+
+    .start-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      padding: 24px;
+      background:
+        linear-gradient(135deg, rgba(245, 244, 239, 0.96), rgba(232, 224, 211, 0.96)),
+        radial-gradient(circle at top left, rgba(47, 93, 80, 0.16), transparent 36%);
+    }
+
+    .start-screen.show {
+      display: grid;
+    }
+
+    .start-panel {
+      width: min(860px, 100%);
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: 0 24px 70px -44px rgba(31, 27, 23, 0.75);
+    }
+
+    .start-panel h2 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    .start-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .choice-card {
+      min-height: 150px;
+      padding: 18px;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .choice-card strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 19px;
+    }
+
+    .choice-card span {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f1eadf;
+    }
+
+    .tab-btn {
+      min-height: 38px;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: white;
+      color: var(--ink);
+      box-shadow: 0 8px 20px -18px rgba(31, 27, 23, 0.8);
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    #aiTab.active {
+      display: flex;
+      flex-direction: column;
+      min-height: 560px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      color: #433d36;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    input,
+    select {
+      min-height: 44px;
+      padding: 10px 12px;
+    }
+
+    textarea {
+      min-height: 92px;
+      padding: 11px 12px;
+      line-height: 1.42;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(47, 93, 80, 0.14);
+    }
+
+    .section-editor {
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+      margin-top: 18px;
+    }
+
+    .section-top,
+    .question-top,
+    .sub-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .question-editor {
+      margin: 14px 0 0 18px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfaf6;
+    }
+
+    .question-grid {
+      display: grid;
+      grid-template-columns: 1fr 110px;
+      gap: 12px;
+    }
+
+    .question-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .sub-editor {
+      margin: 10px 0 0 18px;
+      padding: 10px 0 0 12px;
+      border-left: 2px solid #d5cbbd;
+    }
+
+    .sub-grid {
+      display: grid;
+      grid-template-columns: 1fr 90px;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      min-height: 44px;
+      padding: 10px 14px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: #ede7dd;
+      color: var(--ink);
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+    }
+
+    .btn:hover {
+      background: #e4dccf;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn.primary:hover {
+      background: var(--accent-dark);
+    }
+
+    .btn.ghost {
+      background: transparent;
+      border-color: var(--line);
+    }
+
+    .btn.danger {
+      color: var(--danger);
+      background: transparent;
+      border-color: #e5c6c1;
+    }
+
+    .btn.small {
+      min-height: 36px;
+      padding: 7px 10px;
+      font-size: 13px;
+    }
+
+    .preview-pane {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .preview-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .paper-scroll {
+      overflow: auto;
+      max-height: calc(100dvh - 92px);
+      padding: 18px;
+      background: #e9e4da;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .paper {
+      width: var(--paper-width);
+      min-height: var(--paper-height);
+      margin: 0 auto;
+      padding: 64px 93px 48px;
+      background: white;
+      color: #111;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13.33px;
+      line-height: 1.4;
+      box-shadow: 0 16px 38px -24px rgba(22, 18, 14, 0.65);
+    }
+
+    .paper-help {
+      margin: 0 auto 10px;
+      width: var(--paper-width);
+      color: #4f473f;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .paper-header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .school-name {
+      font-size: 17.33px;
+      line-height: 1;
+      font-weight: 700;
+      margin-bottom: 7px;
+      text-transform: uppercase;
+    }
+
+    .paper-meta {
+      font-size: 14px;
+      line-height: 1.15;
+      margin-bottom: 6px;
+    }
+
+    .paper-marks {
+      font-size: 13.33px;
+      line-height: 1.15;
+    }
+
+    .paper-section {
+      margin-top: 18px;
+      break-inside: auto;
+    }
+
+    .paper-section:first-child {
+      margin-top: 0;
+    }
+
+    .paper-section-title {
+      font-weight: 700;
+      margin: 0 0 10px;
+      text-transform: uppercase;
+    }
+
+    .passage {
+      white-space: pre-wrap;
+      margin: 0 0 12px;
+    }
+
+    .section-direction {
+      margin: 4px 0 9px;
+    }
+
+    .paper-question {
+      break-inside: avoid;
+      margin: 8px 0;
+    }
+
+    .question-line {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 5px;
+      align-items: baseline;
+    }
+
+    .question-text {
+      white-space: pre-wrap;
+    }
+
+    .editable {
+      min-width: 12px;
+      outline: 1px solid transparent;
+      outline-offset: 2px;
+      border-radius: 3px;
+      cursor: text;
+    }
+
+    .editable:hover {
+      background: rgba(47, 93, 80, 0.08);
+    }
+
+    .editable:focus {
+      background: rgba(47, 93, 80, 0.12);
+      outline-color: rgba(47, 93, 80, 0.55);
+    }
+
+    .marks {
+      white-space: nowrap;
+    }
+
+    .sub-list {
+      margin: 6px 0 0 22px;
+      display: grid;
+      gap: 3px;
+    }
+
+    .sub-line {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 6px;
+      align-items: baseline;
+    }
+
+    .answer-space {
+      position: relative;
+      margin: 6px 0 2px 22px;
+      border: 1px dashed rgba(47, 93, 80, 0.38);
+      border-radius: 4px;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0,
+          transparent 27px,
+          rgba(47, 93, 80, 0.22) 28px
+        );
+      cursor: pointer;
+    }
+
+    .answer-space.selected {
+      border-color: var(--accent);
+      background-color: rgba(47, 93, 80, 0.06);
+    }
+
+    .space-tools {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      display: none;
+      gap: 5px;
+      padding: 5px;
+      background: #fffdf8;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      box-shadow: 0 10px 28px -20px rgba(31, 27, 23, 0.7);
+    }
+
+    .answer-space.selected .space-tools,
+    .answer-space:hover .space-tools {
+      display: flex;
+    }
+
+    .space-btn {
+      min-height: 28px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: white;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .space-btn.remove {
+      color: var(--danger);
+    }
+
+    .space-3 { height: 58px; }
+    .space-5 { height: 92px; }
+    .space-10 { height: 180px; }
+    .space-half { height: 430px; break-inside: avoid; }
+    .space-full { height: 900px; break-before: page; }
+
+    .empty-preview {
+      color: #555;
+      font-style: italic;
+    }
+
+    .paste-box {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: #fffaf1;
+    }
+
+    .paste-box textarea {
+      min-height: 120px;
+    }
+
+    .ai-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-height: 520px;
+      height: 100%;
+    }
+
+    .chatgpt-panel {
+      background: #f7f7f8;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #e5e5e5;
+    }
+
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #ffffff;
+      border-bottom: 1px solid #e5e5e5;
+      flex-shrink: 0;
+    }
+
+    .chat-brand {
+      font-size: 15px;
+      font-weight: 800;
+      color: #202123;
+    }
+
+    .chat-status {
+      font-size: 12px;
+      color: #6e6e80;
+      margin-top: 2px;
+    }
+
+    .chat-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chat-header-right select {
+      min-height: 34px;
+      padding: 6px 10px;
+      border: 1px solid #d9d9e3;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 13px;
+      max-width: 180px;
+    }
+
+    .chat-body {
+      flex: 1;
+      overflow: auto;
+      padding: 20px 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-height: 280px;
+      background: #f7f7f8;
+    }
+
+    body.ai-focus .chat-body {
+      min-height: 0;
+      max-height: none;
+    }
+
+    .chat-empty {
+      margin: auto;
+      text-align: center;
+      max-width: 420px;
+      color: #6e6e80;
+      padding: 24px;
+    }
+
+    .chat-empty h3 {
+      margin: 0 0 8px;
+      color: #202123;
+      font-size: 22px;
+    }
+
+    .chat-empty p {
+      margin: 0;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .chat-row {
+      display: flex;
+      gap: 12px;
+      max-width: 820px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .chat-row.user {
+      justify-content: flex-end;
+    }
+
+    .chat-row.assistant {
+      justify-content: flex-start;
+    }
+
+    .chat-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      background: #2f5d50;
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .chat-bubble {
+      padding: 12px 14px;
+      border-radius: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      font-size: 14px;
+      max-width: min(100%, 680px);
+    }
+
+    .chat-bubble.user {
+      background: #2f5d50;
+      color: #ffffff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-bubble.assistant {
+      background: #ffffff;
+      color: #202123;
+      border: 1px solid #e5e5e5;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .chat-bubble.thinking {
+      color: #6e6e80;
+      font-style: italic;
+    }
+
+    .chat-composer {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      padding: 12px 16px 16px;
+      background: #f7f7f8;
+      border-top: 1px solid #e5e5e5;
+      flex-shrink: 0;
+    }
+
+    .chat-composer textarea {
+      flex: 1;
+      min-height: 48px;
+      max-height: 160px;
+      resize: none;
+      padding: 12px 14px;
+      border: 1px solid #d9d9e3;
+      border-radius: 14px;
+      background: #ffffff;
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .chat-composer textarea:focus {
+      outline: 2px solid rgba(47, 93, 80, 0.25);
+      border-color: #2f5d50;
+    }
+
+    .chat-send {
+      min-width: 44px;
+      min-height: 44px;
+      border: 0;
+      border-radius: 10px;
+      background: #2f5d50;
+      color: white;
+      font-weight: 800;
+      cursor: pointer;
+      padding: 0 14px;
+    }
+
+    .chat-send:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .chat-footer {
+      display: none;
+      padding: 0 16px 10px;
+      font-size: 12px;
+      color: #6e6e80;
+      background: #f7f7f8;
+    }
+
+    body.ai-focus {
+      background: #343541;
+    }
+
+    body.ai-focus .editor {
+      background: #343541;
+      border-color: #4d4d4f;
+      box-shadow: none;
+    }
+
+    body.ai-focus .chatgpt-panel {
+      background: #343541;
+      border-color: #4d4d4f;
+    }
+
+    body.ai-focus .chat-header {
+      background: #202123;
+      border-color: #4d4d4f;
+    }
+
+    body.ai-focus .chat-brand {
+      color: #ececf1;
+    }
+
+    body.ai-focus .chat-status {
+      color: #acacbe;
+    }
+
+    body.ai-focus .chat-body {
+      background: #343541;
+    }
+
+    body.ai-focus .chat-bubble.assistant {
+      background: #444654;
+      color: #ececf1;
+      border-color: #565869;
+    }
+
+    body.ai-focus .chat-bubble.user {
+      background: #2f5d50;
+    }
+
+    body.ai-focus .chat-composer {
+      background: #343541;
+      border-color: #4d4d4f;
+    }
+
+    body.ai-focus .chat-composer textarea {
+      background: #40414f;
+      color: #ececf1;
+      border-color: #565869;
+    }
+
+    body.ai-focus .chat-header-right select {
+      background: #40414f;
+      color: #ececf1;
+      border-color: #565869;
+    }
+
+    body.ai-focus .chat-empty h3 {
+      color: #ececf1;
+    }
+
+    body.ai-focus .chat-empty {
+      color: #acacbe;
+    }
+
+    body.ai-focus .proposal {
+      background: #2a2b32;
+      border-color: #565869;
+      color: #ececf1;
+    }
+
+    .proposal {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #bfd4c8;
+      border-radius: 8px;
+      background: #f7fbf8;
+      color: var(--ink);
+    }
+
+    .proposal-title {
+      font-weight: 800;
+    }
+
+    .proposal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .memory-box {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfaf6;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .blank-tools {
+      display: none;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfaf6;
+    }
+
+    .blank-tools.show {
+      display: flex;
+    }
+
+    .tool-btn {
+      min-width: 38px;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: white;
+      color: var(--ink);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .template-editor.hidden {
+      display: none;
+    }
+
+    .paper.blank-paper {
+      outline: 0;
+    }
+
+    .paper.blank-paper:focus {
+      box-shadow: 0 0 0 3px rgba(47, 93, 80, 0.16), 0 16px 38px -24px rgba(22, 18, 14, 0.65);
+    }
+
+    @media (max-width: 1100px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .editor {
+        max-height: none;
+      }
+
+      .paper-scroll {
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .app-shell {
+        padding: 10px;
+      }
+
+      .form-grid,
+      .question-grid,
+      .question-controls,
+      .sub-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .editor-header,
+      .section-top,
+      .question-top,
+      .sub-top {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .paper-scroll {
+        padding: 8px;
+      }
+
+      .paper {
+        transform: scale(0.62);
+        transform-origin: top left;
+        margin-right: calc(var(--paper-width) * -0.38);
+        margin-bottom: calc(var(--paper-height) * -0.38);
+      }
+
+      .start-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @page {
+      size: A4;
+      margin: 48pt 70pt;
+    }
+
+    @media print {
+      body {
+        background: white;
+      }
+
+      body * {
+        visibility: hidden;
+      }
+
+      #paper,
+      #paper * {
+        visibility: visible;
+      }
+
+      .app-shell,
+      .preview-pane,
+      .paper-scroll {
+        display: block;
+        padding: 0;
+        margin: 0;
+        border: 0;
+        background: white;
+        overflow: visible;
+        max-height: none;
+      }
+
+      .editor,
+      .preview-toolbar,
+      .paper-help,
+      .space-tools {
+        display: none;
+      }
+
+      #paper {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: auto;
+        min-height: auto;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+        font-size: 10pt;
+        line-height: 1.4;
+      }
+
+      .school-name {
+        font-size: 13pt;
+      }
+
+      .paper-meta {
+        font-size: 10.5pt;
+      }
+
+      .paper-marks,
+      .paper-section-title,
+      .paper-question,
+      .passage,
+      .section-direction {
+        font-size: 10pt;
+      }
+
+      .editable,
+      .editable:hover,
+      .editable:focus {
+        background: transparent;
+        outline: 0;
+      }
+
+      .answer-space {
+        margin-left: 0;
+        border-color: transparent;
+        background: transparent;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="start-screen" id="startScreen">
+    <div class="start-panel">
+      <h2>Start Question Paper</h2>
+      <p class="hint">Choose the easiest starting point. You can still ask AI for help after opening either mode.</p>
+      <div class="start-grid">
+        <button class="choice-card" type="button" data-start-mode="template">
+          <strong>KRS Template</strong>
+          <span>Use the fixed school format from the existing PDF. Best for unit tests where only questions change.</span>
+        </button>
+        <button class="choice-card" type="button" data-start-mode="blank">
+          <strong>Blank Word Page</strong>
+          <span>Start with an empty paper. Type, paste, bold, underline, and let AI draft questions only when needed.</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="app-shell">
+    <section class="editor" aria-label="Question paper editor">
+      <div class="editor-header">
+        <div>
+          <h1 id="appTitle">KRS Unit Test Paper</h1>
+          <p class="hint" id="appHint">The layout is fixed. Edit manually or ask the AI assistant to prepare additions.</p>
+        </div>
+        <button class="btn primary" id="printTop" type="button">Generate PDF</button>
+      </div>
+
+      <div class="open-server-banner" id="openServerBanner">
+        Open this app using the green local link: http://127.0.0.1:8787/
+        <div class="actions">
+          <button class="btn primary small" id="openServerApp" type="button">Open Correct App</button>
+        </div>
+      </div>
+
+      <div class="status-banner" id="statusBanner"></div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab-btn active" type="button" data-tab="paperTab">Paper Editor</button>
+        <button class="tab-btn" type="button" data-tab="aiTab">AI Assistant</button>
+      </div>
+
+      <div class="tab-panel active" id="paperTab">
+        <div class="blank-tools" id="blankTools">
+          <button class="tool-btn" type="button" data-command="bold" title="Bold">B</button>
+          <button class="tool-btn" type="button" data-command="italic" title="Italic"><i>I</i></button>
+          <button class="tool-btn" type="button" data-command="underline" title="Underline"><u>U</u></button>
+          <button class="tool-btn" type="button" data-command="insertUnorderedList" title="Bullets">List</button>
+          <button class="tool-btn" type="button" data-command="justifyLeft" title="Align left">Left</button>
+          <button class="tool-btn" type="button" data-command="justifyCenter" title="Center">Center</button>
+          <button class="tool-btn" type="button" data-command="formatBlock" data-value="h3" title="Heading">Heading</button>
+          <button class="tool-btn" type="button" data-command="formatBlock" data-value="p" title="Paragraph">Text</button>
+        </div>
+
+        <div class="template-editor" id="templateEditor">
+        <div class="form-grid">
+          <div class="field full">
+            <label for="schoolName">School Name</label>
+            <input id="schoolName" data-paper-field="schoolName" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="className">Class</label>
+            <select id="className" data-paper-field="className">
+              <option>10</option>
+              <option>11</option>
+              <option>12</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="subject">Subject</label>
+            <input id="subject" data-paper-field="subject" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="examName">Exam Name</label>
+            <input id="examName" data-paper-field="examName" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="totalMarks">Total Marks</label>
+            <input id="totalMarks" data-paper-field="totalMarks" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="addSection" type="button">+ Add Section</button>
+          <button class="btn ghost" id="resetSample" type="button">Reset to Sample</button>
+        </div>
+
+        <div id="sectionsEditor"></div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="aiTab">
+        <div class="ai-panel chatgpt-panel">
+          <div class="chat-header">
+            <div>
+              <div class="chat-brand">Paper Assistant</div>
+              <div class="chat-status" id="serverBox">Checking connection...</div>
+            </div>
+            <div class="chat-header-right">
+              <select id="ollamaModel" title="Ollama model"></select>
+              <button class="btn ghost small" id="newChat" type="button">New chat</button>
+              <button class="btn ghost small" id="testGroq" type="button">Check AI</button>
+            </div>
+          </div>
+          <div class="chat-body" id="chatLog"></div>
+          <div class="chat-composer">
+            <textarea id="chatInput" rows="1" placeholder="Message Paper Assistant..."></textarea>
+            <button class="chat-send" id="sendChat" type="button" title="Send">↑</button>
+          </div>
+          <div class="chat-footer">
+            <span id="thinkingBox"></span>
+            <span id="memoryBox"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="preview-pane" aria-label="Live preview">
+      <div class="preview-toolbar">
+        <button class="btn ghost" id="toggleAiWorkspace" type="button">AI Workspace</button>
+        <button class="btn ghost" id="clearSaved" type="button">Clear Saved Draft</button>
+        <button class="btn primary" id="printPreview" type="button">Generate PDF</button>
+      </div>
+      <div class="paper-scroll">
+        <p class="paper-help">Hybrid mode: edit text directly on the paper, paste questions in the left boxes, and click any blank answer space to resize or remove it.</p>
+        <article class="paper" id="paper" aria-label="Question paper preview"></article>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "krs-fixed-question-paper-v1";
+    const CHAT_KEY = "krs-ai-chat-session-v2";
+    const MEMORY_KEY = "krs-ai-memory-v1";
+    const MODE_KEY = "krs-start-mode-v1";
+    const BLANK_DOC_KEY = "krs-blank-document-v1";
+    const MODEL_KEY = "krs-ollama-model-v1";
+    const SERVER_URL = "http://127.0.0.1:8787";
+    const API_BASE = location.protocol === "file:" ? SERVER_URL : "";
+
+    const answerSpaceOptions = [
+      ["none", "No Space"],
+      ["3", "3 Lines"],
+      ["5", "5 Lines"],
+      ["10", "10 Lines"],
+      ["half", "Half Page"],
+      ["full", "Full Page"]
+    ];
+
+    const defaultPaper = {
+      schoolName: "KRISHNAMMAL RAMASUBBAIYER SCHOOL",
+      className: "12",
+      subject: "English",
+      examName: "Unit Test - 4",
+      totalMarks: "19",
+      sections: [
+        {
+          title: "READ THE FOLLOWING PASSAGE CAREFULLY.",
+          marks: "10",
+          numbering: "roman",
+          passage: "Ours was the marsh country, down by the river, within twenty miles of the sea. My first most vivid and broad impression of the identity of things seems to me to have been gained on a memorable raw afternoon towards evening.\n\nThe low leaden line beyond was the river; and that the distant savage lair from which the wind was rushing was the sea; and that the small bundle of shivers growing afraid of it all and beginning to cry, was Pip.",
+          direction: "Answer the following questions, based on the passage above.",
+          questions: [
+            { text: "Which textual evidence tells us that Pip was trembling?", marks: "1", answerSpace: "none", subType: "upper", subs: [] },
+            { text: "Complete the following with a suitable reason.\nThe writer refers to the sea as a 'savage lair' in order to tell the reader that\n___________________________________________.", marks: "1", answerSpace: "none", subType: "upper", subs: [] },
+            { text: "The writer emphasises Pip's vulnerability in all of the following ways EXCEPT -", marks: "1", answerSpace: "none", subType: "upper", subs: [
+              { text: "through the description of the harsh landscape" },
+              { text: "via the behaviour of the frightening man" },
+              { text: "through Pip's helplessness and fear" },
+              { text: "via Pip's knowledge of the surrounding area" }
+            ] }
+          ]
+        },
+        {
+          title: "WRITE AN APPLICATION FOR THE GIVEN SITUATION.",
+          marks: "5",
+          numbering: "roman",
+          passage: "",
+          direction: "",
+          questions: [
+            { text: "An educational institution has invited applications for the post of Social Science Teacher. The candidate should possess strong communication skills, leadership qualities, and the ability to organise educational activities. Write an application for the post.", marks: "", answerSpace: "10", subType: "upper", subs: [] }
+          ]
+        },
+        {
+          title: "READ THE EXTRACT AND ANSWER THE QUESTIONS THAT FOLLOW.",
+          marks: "6",
+          numbering: "roman",
+          passage: "Sometimes I feel myself I can hardly bear\nThe thought of so much childish longing in vain,\nThe sadness that lurks near the open window there,\nThat waits all day in almost open prayer\nFor the squeal of brakes, the sound of a stopping car,\nOf all the thousand selfish cars that pass.",
+          direction: "",
+          questions: [
+            { text: "What does the expression \"childish longing\" refer to?", marks: "1", answerSpace: "none", subType: "upper", subs: [] },
+            { text: "Complete the sentence suitably.\nThe villagers wait for the sound of a stopping car because\n____________________________________________.", marks: "1", answerSpace: "none", subType: "upper", subs: [] }
+          ]
+        },
+        {
+          title: "ANSWER THE FOLLOWING QUESTIONS.",
+          marks: "3 x 3 = 9",
+          numbering: "number",
+          passage: "",
+          direction: "",
+          questions: [
+            { text: "Why does the poet refer to the passing vehicles as \"selfish cars\"?", marks: "3", answerSpace: "5", subType: "upper", subs: [] },
+            { text: "How does the poet highlight the contrast between rural and urban life in the poem?", marks: "3", answerSpace: "5", subType: "upper", subs: [] },
+            { text: "Why do the city people stop at the roadside stand? Mention any two reasons.", marks: "3", answerSpace: "5", subType: "upper", subs: [] }
+          ]
+        }
+      ]
+    };
+
+    localStorage.removeItem("krs-ai-chat-v1");
+    sessionStorage.removeItem("krs-ai-chat-session");
+
+    let appMode = sessionStorage.getItem(MODE_KEY) || "";
+    let paper = loadPaper();
+    let blankDocument = localStorage.getItem(BLANK_DOC_KEY) || "<p><br></p>";
+    let chatMessages = loadChat();
+    let teacherMemory = loadJson(MEMORY_KEY, {
+      acceptedProposalCount: 0,
+      commonRequests: {},
+      preferredNumbering: "roman",
+      preferredSources: []
+    });
+    let selectedSpace = null;
+
+    function loadJson(key, fallback) {
+      try {
+        const saved = localStorage.getItem(key);
+        return saved ? JSON.parse(saved) : structuredClone(fallback);
+      } catch {
+        return structuredClone(fallback);
+      }
+    }
+
+    function loadPaper() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : structuredClone(defaultPaper);
+      } catch {
+        return structuredClone(defaultPaper);
+      }
+    }
+
+    function savePaper() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(paper));
+    }
+
+    function loadChat() {
+      try {
+        const saved = sessionStorage.getItem(CHAT_KEY);
+        if (!saved) return [];
+        const messages = JSON.parse(saved);
+        return Array.isArray(messages) ? messages.filter((message) => {
+          const text = String(message.content || "");
+          return text !== "Thinking..."
+            && !text.includes("Failed to fetch")
+            && !text.trim().startsWith("{");
+        }) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveChat() {
+      const toSave = chatMessages
+        .filter((message) => message.content !== "Thinking...")
+        .map((message) => ({
+          role: message.role,
+          content: message.role === "assistant" ? formatAssistantText(message.content) : message.content,
+          proposals: message.proposals || []
+        }));
+      sessionStorage.setItem(CHAT_KEY, JSON.stringify(toSave));
+    }
+
+    function clearChatSession() {
+      chatMessages = [];
+      sessionStorage.removeItem(CHAT_KEY);
+      renderChat();
+      setThinking("New chat started.");
+      document.getElementById("chatInput")?.focus();
+    }
+
+    function isCasualMessage(text) {
+      const t = String(text || "").trim().toLowerCase();
+      return /^(hi|hello|hey|good morning|good afternoon|good evening|thanks|thank you|ok|okay|bye|namaste)[!.?\s]*$/i.test(t);
+    }
+
+    function casualReplyText() {
+      const style = teacherMemory.preferredNumbering === "number" ? "1. 2. 3." : "Roman I, II, III.";
+      return `Hello. I am ready to help with your question paper. Ask me to draft CBSE-style questions, MCQs, or passage sets. Example: "Give me 5 MCQ on Amanda, ${style} numbering, 5 marks."`;
+    }
+
+    function saveMemory() {
+      localStorage.setItem(MEMORY_KEY, JSON.stringify(teacherMemory));
+    }
+
+    function saveMode(mode) {
+      appMode = mode;
+      sessionStorage.setItem(MODE_KEY, mode);
+      applyMode();
+    }
+
+    function applyMode() {
+      const start = document.getElementById("startScreen");
+      const templateEditor = document.getElementById("templateEditor");
+      const blankTools = document.getElementById("blankTools");
+      const title = document.getElementById("appTitle");
+      const hint = document.getElementById("appHint");
+
+      start.classList.toggle("show", !appMode);
+      templateEditor.classList.toggle("hidden", appMode === "blank");
+      blankTools.classList.toggle("show", appMode === "blank");
+
+      if (appMode === "blank") {
+        title.textContent = "Blank Question Paper";
+        hint.textContent = "Type like a simple document. Use AI only when you want help.";
+      } else {
+        title.textContent = "KRS Unit Test Paper";
+        hint.textContent = "The layout is fixed. Edit manually or ask the AI assistant to prepare additions.";
+      }
+
+      renderPreview();
+    }
+
+    function roman(number) {
+      const values = [
+        [1000, "M"], [900, "CM"], [500, "D"], [400, "CD"],
+        [100, "C"], [90, "XC"], [50, "L"], [40, "XL"],
+        [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]
+      ];
+      let result = "";
+      let n = number;
+      for (const [value, numeral] of values) {
+        while (n >= value) {
+          result += numeral;
+          n -= value;
+        }
+      }
+      return result;
+    }
+
+    function subLabel(index, type) {
+      if (type === "lowerRoman") {
+        return roman(index + 1).toLowerCase() + ".";
+      }
+      return String.fromCharCode(65 + index) + ".";
+    }
+
+    function questionLabel(index, section) {
+      return section.numbering === "number" ? `${index + 1}.` : `${roman(index + 1)}.`;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function sectionMarksText(section) {
+      const marks = String(section.marks || "").trim();
+      if (!marks) return "";
+      return marks.toLowerCase().includes("mark") ? marks : `${marks} Marks`;
+    }
+
+    function questionMarksText(question) {
+      const marks = String(question.marks || "").trim();
+      if (!marks) return "";
+      return marks.startsWith("(") ? marks : `(${marks})`;
+    }
+
+    function editableText(value, attrs, className = "") {
+      const attrText = Object.entries(attrs)
+        .map(([key, val]) => `data-${key}="${escapeHtml(val)}"`)
+        .join(" ");
+      return `<span class="editable ${className}" contenteditable="true" spellcheck="true" ${attrText}>${escapeHtml(value)}</span>`;
+    }
+
+    function plainTextFromEditable(element) {
+      return element.innerText.replace(/\r/g, "").trimEnd();
+    }
+
+    function normalizePastedQuestion(line) {
+      return line
+        .replace(/^\s*(?:\d+|[ivxlcdm]+|[IVXLCDM]+|[A-Z]|[a-z])[\).\-\:]\s+/, "")
+        .trim();
+    }
+
+    function questionFromPastedLine(line) {
+      const cleaned = normalizePastedQuestion(line);
+      const marksMatch = cleaned.match(/\((\d+(?:\s*x\s*\d+\s*=\s*)?\d*)\)\s*$/i);
+      const marks = marksMatch ? marksMatch[1].trim() : "1";
+      const text = marksMatch ? cleaned.slice(0, marksMatch.index).trim() : cleaned;
+      return { text, marks, answerSpace: "none", subType: "upper", subs: [] };
+    }
+
+    function numericMarks(value) {
+      const text = String(value || "").toLowerCase().replace(/marks?/g, "").trim();
+      const expression = text.match(/^(\d+)\s*x\s*(\d+)\s*=\s*(\d+)$/);
+      if (expression) return Number(expression[3]);
+      const number = text.match(/\d+(?:\.\d+)?/);
+      return number ? Number(number[0]) : 0;
+    }
+
+    function paperQuestionTotal() {
+      return (paper.sections || []).reduce((sum, section) => {
+        const questionTotal = (section.questions || []).reduce((inner, question) => inner + numericMarks(question.marks), 0);
+        return sum + (questionTotal || numericMarks(section.marks));
+      }, 0);
+    }
+
+    function setStatus(message, blink = false) {
+      const banner = document.getElementById("statusBanner");
+      banner.textContent = message || "";
+      banner.classList.toggle("show", Boolean(message));
+      banner.classList.toggle("blink", Boolean(message && blink));
+      if (blink) {
+        setTimeout(() => banner.classList.remove("blink"), 2800);
+      }
+    }
+
+    function friendlyAiError(error) {
+      if (String(error.message || "").toLowerCase().includes("failed to fetch")) {
+        return "AI could not connect from this page. Click Open Correct App and use the http://127.0.0.1:8787 page.";
+      }
+      return error.message || "AI could not complete that.";
+    }
+
+    function analyzeMarks() {
+      const expected = numericMarks(paper.totalMarks);
+      const actual = paperQuestionTotal();
+      if (expected && actual && Math.abs(expected - actual) > 0.01) {
+        setStatus(`Marks warning: paper total is ${paper.totalMarks}, but questions currently add up to ${actual}.`, true);
+        return;
+      }
+      const banner = document.getElementById("statusBanner");
+      if (banner && banner.textContent.startsWith("Marks warning:")) setStatus("");
+    }
+
+    function normalizeProposal(proposal) {
+      return {
+        title: proposal.title || "AI suggestion",
+        target: proposal.target || "new-section",
+        sectionTitle: proposal.sectionTitle || "ANSWER THE FOLLOWING QUESTIONS.",
+        sectionMarks: proposal.sectionMarks || "",
+        sectionNumbering: proposal.sectionNumbering === "number" ? "number" : "roman",
+        passage: proposal.passage || "",
+        direction: proposal.direction || "",
+        questions: Array.isArray(proposal.questions) ? proposal.questions.map((question) => ({
+          text: question.text || "",
+          marks: String(question.marks || "1"),
+          answerSpace: answerSpaceOptions.some(([value]) => value === question.answerSpace) ? question.answerSpace : "none",
+          subType: question.subType === "lowerRoman" ? "lowerRoman" : "upper",
+          subs: Array.isArray(question.subs) ? question.subs.map((sub) => ({ text: sub.text || "" })) : []
+        })).filter((question) => question.text) : []
+      };
+    }
+
+    function proposalTotal(proposal) {
+      return proposal.questions.reduce((sum, question) => sum + numericMarks(question.marks), 0);
+    }
+
+    function rememberUserAsk(text) {
+      const lower = String(text || "").toLowerCase();
+      ["ncert", "pyq", "mcq", "extract", "passage", "application", "cbse", "amanda"].forEach((word) => {
+        if (lower.includes(word)) {
+          teacherMemory.commonRequests[word] = (teacherMemory.commonRequests[word] || 0) + 1;
+        }
+      });
+      if (/roman/i.test(lower)) teacherMemory.preferredNumbering = "roman";
+      if (/numeric|1\. 2\.|numbering/i.test(lower)) teacherMemory.preferredNumbering = "number";
+      saveMemory();
+      renderMemory();
+    }
+
+    function rememberAcceptedProposal(proposal) {
+      teacherMemory.acceptedProposalCount += 1;
+      teacherMemory.preferredNumbering = proposal.sectionNumbering || teacherMemory.preferredNumbering;
+      const lowerTitle = `${proposal.title} ${proposal.sectionTitle}`.toLowerCase();
+      ["ncert", "pyq", "mcq", "extract", "passage", "application"].forEach((word) => {
+        if (lowerTitle.includes(word)) {
+          teacherMemory.commonRequests[word] = (teacherMemory.commonRequests[word] || 0) + 1;
+        }
+      });
+      saveMemory();
+      renderMemory();
+    }
+
+    function applyProposal(proposal, sectionIndex = null) {
+      const normalized = normalizeProposal(proposal);
+      if (!normalized.questions.length) {
+        setStatus("AI suggestion has no usable questions to add.", true);
+        return;
+      }
+
+      if (appMode === "blank") {
+        const paperEl = document.getElementById("paper");
+        const html = proposalToHtml(normalized);
+        blankDocument = `${paperEl.innerHTML}${html}`;
+        localStorage.setItem(BLANK_DOC_KEY, blankDocument);
+        renderPreview();
+        rememberAcceptedProposal(normalized);
+        setStatus(`Added ${normalized.questions.length} question(s) to the blank page.`, true);
+        return;
+      }
+
+      if (sectionIndex === null || sectionIndex === "") {
+        paper.sections.push({
+          title: normalized.sectionTitle,
+          marks: normalized.sectionMarks || String(proposalTotal(normalized)),
+          numbering: normalized.sectionNumbering,
+          passage: normalized.passage || "",
+          direction: normalized.direction || "",
+          questions: normalized.questions
+        });
+      } else {
+        const section = paper.sections[Number(sectionIndex)];
+        section.questions.push(...normalized.questions);
+      }
+
+      rememberAcceptedProposal(normalized);
+      renderEditor();
+      sync();
+      setStatus(`Added ${normalized.questions.length} question(s). Check total marks before printing.`, true);
+    }
+
+    function proposalToHtml(proposal) {
+      const items = proposal.questions.map((question, index) => {
+        const label = proposal.sectionNumbering === "number" ? `${index + 1}.` : `${roman(index + 1)}.`;
+        const subs = question.subs.length
+          ? `<ol type="A">${question.subs.map((sub) => `<li>${escapeHtml(sub.text)}</li>`).join("")}</ol>`
+          : "";
+        return `<p><strong>${label}</strong> ${escapeHtml(question.text)} ${question.marks ? `(${escapeHtml(question.marks)})` : ""}</p>${subs}`;
+      }).join("");
+      return `<h3>${escapeHtml(proposal.sectionTitle)}${proposal.sectionMarks ? ` (${escapeHtml(proposal.sectionMarks)} Marks)` : ""}</h3>${items}`;
+    }
+
+    function formatAssistantText(content) {
+      const text = String(content || "").trim();
+      if (!text.startsWith("{")) return text;
+      try {
+        const parsed = JSON.parse(text);
+        return parsed.reply || "I am ready to help with your question paper.";
+      } catch {
+        const match = text.match(/"reply"\s*:\s*"((?:\\.|[^"\\])*)"/);
+        if (match) return match[1].replace(/\\"/g, '"').replace(/\\n/g, "\n");
+        return "I am ready to help with your question paper.";
+      }
+    }
+
+    function renderMemory() {
+      const box = document.getElementById("memoryBox");
+      if (!box) return;
+      const common = Object.entries(teacherMemory.commonRequests || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([key, count]) => `${key} (${count})`)
+        .join(", ");
+      const text = teacherMemory.acceptedProposalCount
+        ? `Learned: ${common || "your style"}. Numbering: ${teacherMemory.preferredNumbering}.`
+        : "";
+      box.textContent = text;
+      box.style.display = text ? "inline" : "none";
+    }
+
+    function renderProposalCards(message, messageIndex) {
+      return (message.proposals || []).map((proposal, proposalIndex) => {
+        const normalized = normalizeProposal(proposal);
+        return `<div class="proposal">
+          <div class="proposal-title">${escapeHtml(normalized.title)} (${proposalTotal(normalized)} marks)</div>
+          <div>${escapeHtml(normalized.questions.slice(0, 3).map((question) => question.text).join("\n"))}</div>
+          <div class="field">
+            <label>Add to Section</label>
+            <select data-proposal-section="${messageIndex}:${proposalIndex}">
+              <option value="">New section: ${escapeHtml(normalized.sectionTitle)}</option>
+              ${(paper.sections || []).map((section, index) => `<option value="${index}">${roman(index + 1)}. ${escapeHtml(section.title || "Untitled Section")}</option>`).join("")}
+            </select>
+          </div>
+          <div class="proposal-actions">
+            <button class="btn primary small" type="button" data-action="proposal-add" data-proposal="${messageIndex}:${proposalIndex}">Add to Question Paper</button>
+            <button class="btn ghost small" type="button" data-action="proposal-wrong" data-proposal="${messageIndex}:${proposalIndex}">This is Wrong</button>
+            <button class="btn danger small" type="button" data-action="proposal-discard" data-proposal="${messageIndex}:${proposalIndex}">Discard</button>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    function renderChat() {
+      const log = document.getElementById("chatLog");
+      if (!log) return;
+
+      if (!chatMessages.length) {
+        log.innerHTML = `<div class="chat-empty">
+          <h3>Paper Assistant</h3>
+          <p>Fresh chat every session. Ask for CBSE questions, MCQs, passages, or mark checks.<br>Example: Give me 5 MCQ on Amanda, Roman numbering, 5 marks.</p>
+        </div>`;
+        return;
+      }
+
+      log.innerHTML = chatMessages.map((message, messageIndex) => {
+        const isUser = message.role === "user";
+        const isThinking = message.content === "Thinking...";
+        const text = isUser ? message.content : formatAssistantText(message.content);
+        if (isUser) {
+          return `<div class="chat-row user"><div class="chat-bubble user">${escapeHtml(text)}</div></div>`;
+        }
+        return `<div class="chat-row assistant">
+          <div class="chat-avatar">AI</div>
+          <div class="chat-bubble assistant ${isThinking ? "thinking" : ""}">
+            ${escapeHtml(text)}
+            ${renderProposalCards(message, messageIndex)}
+          </div>
+        </div>`;
+      }).join("");
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function setThinking(message) {
+      const box = document.getElementById("thinkingBox");
+      if (box) box.textContent = message || "Ready.";
+    }
+
+    function selectedModel() {
+      const select = document.getElementById("ollamaModel");
+      return select?.value || localStorage.getItem(MODEL_KEY) || "llama3.1:latest";
+    }
+
+    async function loadModels() {
+      const select = document.getElementById("ollamaModel");
+      if (!select) return;
+      try {
+        const response = await fetch(`${API_BASE}/api/models`, { cache: "no-store" });
+        const data = await response.json();
+        const models = data.models?.length ? data.models : ["llama3.1:latest", "qwen3.6", "gemma4"];
+        const saved = localStorage.getItem(MODEL_KEY);
+        select.innerHTML = models.map((model) => `<option value="${escapeHtml(model)}">${escapeHtml(model)}</option>`).join("");
+        if (saved && models.includes(saved)) select.value = saved;
+        else if (models.includes("llama3.1:latest")) select.value = "llama3.1:latest";
+        select.addEventListener("change", () => localStorage.setItem(MODEL_KEY, select.value));
+      } catch {
+        select.innerHTML = `<option value="llama3.1:latest">llama3.1:latest</option>`;
+      }
+    }
+
+    async function checkServer() {
+      const box = document.getElementById("serverBox");
+      const openBanner = document.getElementById("openServerBanner");
+      if (openBanner) openBanner.classList.toggle("show", location.protocol === "file:");
+      if (!box) return;
+      try {
+        const response = await fetch(`${API_BASE}/`, { method: "GET", cache: "no-store" });
+        if (!response.ok) throw new Error("not ok");
+        box.textContent = location.protocol === "file:"
+          ? "Open http://127.0.0.1:8787 for AI"
+          : `Connected · ${selectedModel()} · fresh session chat`;
+      } catch {
+        box.textContent = "AI server is not connected. Double-click START-KRS-PAPER-TOOL.bat, then use http://127.0.0.1:8787/.";
+        box.style.borderColor = "#e4bf86";
+        box.style.background = "#fff4dd";
+      }
+    }
+
+    async function callLocalAi(messages, apiKey = "") {
+      const response = await fetch(`${API_BASE}/api/ai`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+        body: JSON.stringify({
+          apiKey,
+          model: selectedModel(),
+          messages,
+          paper: appMode === "blank" ? { blankDocument } : paper,
+          memory: teacherMemory
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || "AI request failed.");
+      return data;
+    }
+
+    async function testGroqKey() {
+      const response = await fetch(`${API_BASE}/api/test-ai`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: selectedModel(),
+          paper: appMode === "blank" ? { blankDocument } : paper,
+          memory: teacherMemory
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || "AI test failed.");
+      return data;
+    }
+
+    function renderEditor() {
+      document.querySelectorAll("[data-paper-field]").forEach((input) => {
+        input.value = paper[input.dataset.paperField] || "";
+      });
+
+      const root = document.getElementById("sectionsEditor");
+      root.innerHTML = paper.sections.map((section, sectionIndex) => `
+        <div class="section-editor" data-section="${sectionIndex}">
+          <div class="section-top">
+            <div class="section-title">${roman(sectionIndex + 1)}. Section</div>
+            <button class="btn danger small" type="button" data-action="remove-section">Remove Section</button>
+          </div>
+          <div class="form-grid">
+            <div class="field full">
+              <label>Section Title</label>
+              <input data-section-field="title" value="${escapeHtml(section.title)}" autocomplete="off">
+            </div>
+            <div class="field">
+              <label>Section Marks</label>
+              <input data-section-field="marks" value="${escapeHtml(section.marks)}" autocomplete="off">
+            </div>
+            <div class="field">
+              <label>Instruction Below Passage</label>
+              <input data-section-field="direction" value="${escapeHtml(section.direction)}" autocomplete="off">
+            </div>
+            <div class="field">
+              <label>Question Numbering</label>
+              <select data-section-field="numbering">
+                <option value="roman" ${section.numbering !== "number" ? "selected" : ""}>I. II. III.</option>
+                <option value="number" ${section.numbering === "number" ? "selected" : ""}>1. 2. 3.</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label>Passage or Extract</label>
+              <textarea data-section-field="passage">${escapeHtml(section.passage)}</textarea>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn primary" type="button" data-action="add-question">+ Add Question</button>
+            <button class="btn ghost" type="button" data-action="add-mcq">+ Add MCQ</button>
+          </div>
+          <div class="paste-box">
+            <div class="field">
+              <label>Paste Questions from ChatGPT</label>
+              <textarea data-paste-questions placeholder="Paste one question per line. Example: I. What does the phrase mean? (1)"></textarea>
+            </div>
+            <div class="actions">
+              <button class="btn ghost small" type="button" data-action="paste-questions">Add Pasted Questions</button>
+            </div>
+          </div>
+          ${(section.questions || []).map((question, questionIndex) => `
+            <div class="question-editor" data-question="${questionIndex}">
+              <div class="question-top">
+                <div class="section-title">${roman(questionIndex + 1)}. Question</div>
+                <button class="btn danger small" type="button" data-action="remove-question">Remove Question</button>
+              </div>
+              <div class="question-grid">
+                <div class="field">
+                  <label>Question Text</label>
+                  <textarea data-question-field="text">${escapeHtml(question.text)}</textarea>
+                </div>
+                <div class="field">
+                  <label>Marks</label>
+                  <input data-question-field="marks" value="${escapeHtml(question.marks)}" autocomplete="off">
+                </div>
+              </div>
+              <div class="question-controls">
+                <div class="field">
+                  <label>Answer Space</label>
+                  <select data-question-field="answerSpace">
+                    ${answerSpaceOptions.map(([value, label]) => `<option value="${value}" ${question.answerSpace === value ? "selected" : ""}>${label}</option>`).join("")}
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Sub Question Type</label>
+                  <select data-question-field="subType">
+                    <option value="upper" ${question.subType !== "lowerRoman" ? "selected" : ""}>A. B. C. D.</option>
+                    <option value="lowerRoman" ${question.subType === "lowerRoman" ? "selected" : ""}>i. ii. iii.</option>
+                  </select>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn ghost small" type="button" data-action="add-sub">+ Add Sub Question</button>
+              </div>
+              ${(question.subs || []).map((sub, subIndex) => `
+                <div class="sub-editor" data-sub="${subIndex}">
+                  <div class="sub-top">
+                    <label>${subLabel(subIndex, question.subType)}</label>
+                    <button class="btn danger small" type="button" data-action="remove-sub">Remove</button>
+                  </div>
+                  <div class="sub-grid">
+                    <textarea data-sub-field="text">${escapeHtml(sub.text)}</textarea>
+                    <span></span>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          `).join("")}
+        </div>
+      `).join("");
+    }
+
+    function renderPreview() {
+      selectedSpace = null;
+      const paperEl = document.getElementById("paper");
+      if (appMode === "blank") {
+        paperEl.classList.add("blank-paper");
+        paperEl.setAttribute("contenteditable", "true");
+        paperEl.setAttribute("spellcheck", "true");
+        paperEl.innerHTML = blankDocument || "<p><br></p>";
+        return;
+      }
+
+      paperEl.classList.remove("blank-paper");
+      paperEl.removeAttribute("contenteditable");
+      paperEl.removeAttribute("spellcheck");
+      const sections = paper.sections || [];
+      paperEl.innerHTML = `
+        <header class="paper-header">
+          <div class="school-name">${editableText(paper.schoolName, { preview: "paper", field: "schoolName" })}</div>
+          <div class="paper-meta">Class ${editableText(paper.className, { preview: "paper", field: "className" })} | ${editableText(paper.subject, { preview: "paper", field: "subject" })} | ${editableText(paper.examName, { preview: "paper", field: "examName" })}</div>
+          <div class="paper-marks">Total Marks: ${editableText(paper.totalMarks, { preview: "paper", field: "totalMarks" })}</div>
+        </header>
+        ${sections.length ? sections.map((section, sectionIndex) => `
+          <section class="paper-section">
+            <p class="paper-section-title">${roman(sectionIndex + 1)}. ${editableText(section.title, { preview: "section", section: sectionIndex, field: "title" })}${sectionMarksText(section) ? ` (${editableText(sectionMarksText(section), { preview: "section", section: sectionIndex, field: "marks" })})` : ` (${editableText("", { preview: "section", section: sectionIndex, field: "marks" })})`}</p>
+            ${section.passage ? `<p class="passage">${editableText(section.passage, { preview: "section", section: sectionIndex, field: "passage" })}</p>` : `<p class="passage">${editableText("", { preview: "section", section: sectionIndex, field: "passage" })}</p>`}
+            ${section.direction ? `<p class="section-direction">${editableText(section.direction, { preview: "section", section: sectionIndex, field: "direction" })}</p>` : ""}
+            ${(section.questions || []).map((question, questionIndex) => `
+              <div class="paper-question">
+                <div class="question-line">
+                  <span>${questionLabel(questionIndex, section)}</span>
+                  ${editableText(question.text, { preview: "question", section: sectionIndex, question: questionIndex, field: "text" }, "question-text")}
+                  <span class="marks">${String(question.marks || "").trim() ? `(${editableText(question.marks, { preview: "question", section: sectionIndex, question: questionIndex, field: "marks" })})` : editableText("", { preview: "question", section: sectionIndex, question: questionIndex, field: "marks" })}</span>
+                </div>
+                ${(question.subs || []).length ? `<div class="sub-list">
+                  ${question.subs.map((sub, subIndex) => `
+                    <div class="sub-line">
+                      <span>${subLabel(subIndex, question.subType)}</span>
+                      ${editableText(sub.text, { preview: "sub", section: sectionIndex, question: questionIndex, sub: subIndex, field: "text" })}
+                    </div>
+                  `).join("")}
+                </div>` : ""}
+                ${question.answerSpace && question.answerSpace !== "none" ? `<div class="answer-space space-${question.answerSpace}" tabindex="0" data-space-section="${sectionIndex}" data-space-question="${questionIndex}">
+                  <div class="space-tools" contenteditable="false">
+                    <button class="space-btn" type="button" data-space-size="3">3</button>
+                    <button class="space-btn" type="button" data-space-size="5">5</button>
+                    <button class="space-btn" type="button" data-space-size="10">10</button>
+                    <button class="space-btn" type="button" data-space-size="half">Half</button>
+                    <button class="space-btn remove" type="button" data-space-size="none">Remove</button>
+                  </div>
+                </div>` : ""}
+              </div>
+            `).join("")}
+          </section>
+        `).join("") : `<p class="empty-preview">Add a section to begin the question paper.</p>`}
+        <p style="text-align:center; margin-top: 22px;">*** All the Best ***</p>
+      `;
+    }
+
+    function sync() {
+      savePaper();
+      renderPreview();
+      analyzeMarks();
+    }
+
+    function setPreviewValue(target) {
+      const value = plainTextFromEditable(target);
+      const kind = target.dataset.preview;
+      const field = target.dataset.field;
+
+      if (kind === "paper") {
+        paper[field] = value;
+      }
+
+      if (kind === "section") {
+        const section = paper.sections[Number(target.dataset.section)];
+        section[field] = field === "marks" ? value.replace(/\s*marks?\s*$/i, "").trim() : value;
+      }
+
+      if (kind === "question") {
+        const section = paper.sections[Number(target.dataset.section)];
+        const question = section.questions[Number(target.dataset.question)];
+        question[field] = field === "marks" ? value.replace(/[()]/g, "").trim() : value;
+      }
+
+      if (kind === "sub") {
+        const section = paper.sections[Number(target.dataset.section)];
+        const question = section.questions[Number(target.dataset.question)];
+        question.subs[Number(target.dataset.sub)][field] = value;
+      }
+
+      savePaper();
+    }
+
+    function updateAnswerSpace(sectionIndex, questionIndex, value) {
+      const question = paper.sections[sectionIndex].questions[questionIndex];
+      question.answerSpace = value;
+      renderEditor();
+      sync();
+    }
+
+    function selectAnswerSpace(space) {
+      document.querySelectorAll(".answer-space.selected").forEach((el) => el.classList.remove("selected"));
+      selectedSpace = space;
+      if (selectedSpace) selectedSpace.classList.add("selected");
+    }
+
+    document.addEventListener("input", (event) => {
+      const target = event.target;
+      if (appMode === "blank" && target.id === "paper") {
+        blankDocument = target.innerHTML;
+        localStorage.setItem(BLANK_DOC_KEY, blankDocument);
+        return;
+      }
+
+      if (target.matches("[contenteditable][data-preview]")) {
+        setPreviewValue(target);
+        return;
+      }
+
+      if (target.matches("[data-paper-field]")) {
+        paper[target.dataset.paperField] = target.value;
+        sync();
+      }
+
+      const sectionEl = target.closest("[data-section]");
+      if (sectionEl && target.matches("[data-section-field]")) {
+        paper.sections[Number(sectionEl.dataset.section)][target.dataset.sectionField] = target.value;
+        sync();
+      }
+
+      const questionEl = target.closest("[data-question]");
+      if (sectionEl && questionEl && target.matches("[data-question-field]")) {
+        const section = paper.sections[Number(sectionEl.dataset.section)];
+        const question = section.questions[Number(questionEl.dataset.question)];
+        question[target.dataset.questionField] = target.value;
+        sync();
+      }
+
+      const subEl = target.closest("[data-sub]");
+      if (sectionEl && questionEl && subEl && target.matches("[data-sub-field]")) {
+        const section = paper.sections[Number(sectionEl.dataset.section)];
+        const question = section.questions[Number(questionEl.dataset.question)];
+        question.subs[Number(subEl.dataset.sub)][target.dataset.subField] = target.value;
+        sync();
+      }
+    });
+
+    document.addEventListener("change", (event) => {
+      if (event.target.matches("select")) {
+        event.target.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    });
+
+    document.addEventListener("blur", (event) => {
+      if (event.target.matches("[contenteditable][data-preview]")) {
+        setPreviewValue(event.target);
+        renderEditor();
+      }
+    }, true);
+
+    document.addEventListener("paste", (event) => {
+      const target = event.target;
+      if (!target.matches("[contenteditable][data-preview]")) return;
+      event.preventDefault();
+      const text = event.clipboardData.getData("text/plain");
+      document.execCommand("insertText", false, text);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if ((event.key === "Backspace" || event.key === "Delete") && selectedSpace && document.activeElement === selectedSpace) {
+        event.preventDefault();
+        updateAnswerSpace(Number(selectedSpace.dataset.spaceSection), Number(selectedSpace.dataset.spaceQuestion), "none");
+      }
+    });
+
+    document.addEventListener("click", async (event) => {
+      const button = event.target.closest("button");
+      const spaceButton = event.target.closest("[data-space-size]");
+      if (spaceButton) {
+        const space = spaceButton.closest(".answer-space");
+        updateAnswerSpace(Number(space.dataset.spaceSection), Number(space.dataset.spaceQuestion), spaceButton.dataset.spaceSize);
+        return;
+      }
+
+      const space = event.target.closest(".answer-space");
+      if (space) {
+        selectAnswerSpace(space);
+        space.focus();
+        return;
+      }
+
+      if (!button) return;
+
+      if (button.id === "openServerApp") {
+        window.location.href = SERVER_URL;
+        return;
+      }
+
+      if (button.id === "toggleAiWorkspace") {
+        const entering = !document.body.classList.contains("ai-focus");
+        document.body.classList.toggle("ai-focus", entering);
+        document.querySelectorAll(".tab-btn").forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === "aiTab"));
+        document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.toggle("active", panel.id === "aiTab"));
+        button.textContent = entering ? "Exit AI Workspace" : "AI Workspace";
+        if (entering) document.getElementById("chatInput")?.focus();
+        return;
+      }
+
+      if (button.dataset.startMode) {
+        saveMode(button.dataset.startMode);
+        return;
+      }
+
+      if (button.dataset.command) {
+        document.getElementById("paper").focus();
+        document.execCommand(button.dataset.command, false, button.dataset.value || null);
+        blankDocument = document.getElementById("paper").innerHTML;
+        localStorage.setItem(BLANK_DOC_KEY, blankDocument);
+        return;
+      }
+
+      if (button.dataset.tab) {
+        document.querySelectorAll(".tab-btn").forEach((tab) => tab.classList.toggle("active", tab === button));
+        document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.toggle("active", panel.id === button.dataset.tab));
+        return;
+      }
+
+      if (button.id === "testGroq") {
+        try {
+          button.disabled = true;
+          setStatus("Checking Ollama connection...");
+          setThinking("Connecting to local Ollama...");
+          const data = await testGroqKey();
+          setThinking(`Connected: ${data.model || selectedModel()}`);
+          setStatus(`AI is ready (${data.model || selectedModel()}).`, true);
+        } catch (error) {
+          setThinking("Ollama not connected.");
+          setStatus(friendlyAiError(error), true);
+        } finally {
+          button.disabled = false;
+        }
+        return;
+      }
+
+      if (button.id === "sendChat") {
+        const input = document.getElementById("chatInput");
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        rememberUserAsk(text);
+        chatMessages.push({ role: "user", content: text });
+        renderChat();
+
+        if (isCasualMessage(text)) {
+          chatMessages.push({ role: "assistant", content: casualReplyText(), proposals: [] });
+          saveChat();
+          renderChat();
+          setThinking("Ready.");
+          return;
+        }
+
+        chatMessages.push({ role: "assistant", content: "Thinking...", proposals: [] });
+        renderChat();
+        try {
+          button.disabled = true;
+          setThinking("Reading your request...");
+          const data = await callLocalAi(chatMessages.filter((message) => message.content !== "Thinking...").map((message) => ({
+            role: message.role,
+            content: message.content
+          })));
+          const result = data.result || {};
+          const meta = data.meta || {};
+          const steps = Array.isArray(meta.steps) ? meta.steps.join(" → ") : "";
+          const sources = Array.isArray(meta.sources) && meta.sources.length
+            ? `\n\nSources checked: ${meta.sources.slice(0, 2).join(", ")}`
+            : "";
+          const replyText = formatAssistantText(result.reply || "I prepared a suggestion.");
+          setThinking(steps || `Done with ${data.model || selectedModel()}.`);
+          chatMessages[chatMessages.length - 1] = {
+            role: "assistant",
+            content: `${replyText}${sources}`,
+            proposals: Array.isArray(result.proposals) ? result.proposals : []
+          };
+          if (result.warnings && result.warnings.length) {
+            setStatus(result.warnings.join(" "), true);
+          }
+        } catch (error) {
+          setThinking("AI request failed.");
+          chatMessages[chatMessages.length - 1] = {
+            role: "assistant",
+            content: friendlyAiError(error),
+            proposals: []
+          };
+          setStatus(friendlyAiError(error), true);
+        } finally {
+          button.disabled = false;
+          saveChat();
+          renderChat();
+        }
+        return;
+      }
+
+      if (button.id === "newChat" || button.id === "clearChat") {
+        clearChatSession();
+        return;
+      }
+
+      const action = button.dataset.action;
+      const sectionEl = button.closest("[data-section]");
+      const questionEl = button.closest("[data-question]");
+      const subEl = button.closest("[data-sub]");
+
+      if (action && action.startsWith("proposal-")) {
+        const [messageIndex, proposalIndex] = button.dataset.proposal.split(":").map(Number);
+        const proposal = chatMessages[messageIndex]?.proposals?.[proposalIndex];
+        if (!proposal) return;
+
+        if (action === "proposal-add") {
+          const select = document.querySelector(`[data-proposal-section="${messageIndex}:${proposalIndex}"]`);
+          applyProposal(proposal, select ? select.value : "");
+          chatMessages.push({ role: "assistant", content: "Added after your approval. I also checked the marks at the top.", proposals: [] });
+        }
+
+        if (action === "proposal-wrong") {
+          chatMessages.push({ role: "assistant", content: "Tell me what is wrong: marks, numbering, section, question level, or wording. I will revise before adding.", proposals: [] });
+        }
+
+        if (action === "proposal-discard") {
+          chatMessages.push({ role: "assistant", content: "Discarded. Nothing was added to the question paper.", proposals: [] });
+        }
+
+        saveChat();
+        renderChat();
+        return;
+      }
+
+      if (button.id === "addSection") {
+        paper.sections.push({ title: "", marks: "", numbering: "roman", passage: "", direction: "", questions: [] });
+      }
+
+      if (button.id === "resetSample") {
+        paper = structuredClone(defaultPaper);
+      }
+
+      if (button.id === "clearSaved") {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(BLANK_DOC_KEY);
+        paper = structuredClone(defaultPaper);
+        blankDocument = "<p><br></p>";
+      }
+
+      if (button.id === "printTop" || button.id === "printPreview") {
+        window.print();
+        return;
+      }
+
+      if (sectionEl && action === "remove-section") {
+        paper.sections.splice(Number(sectionEl.dataset.section), 1);
+      }
+
+      if (sectionEl && action === "add-question") {
+        paper.sections[Number(sectionEl.dataset.section)].questions.push({
+          text: "",
+          marks: "1",
+          answerSpace: "none",
+          subType: "upper",
+          subs: []
+        });
+      }
+
+      if (sectionEl && action === "add-mcq") {
+        paper.sections[Number(sectionEl.dataset.section)].questions.push({
+          text: "Choose the correct option.",
+          marks: "1",
+          answerSpace: "none",
+          subType: "upper",
+          subs: [
+            { text: "Option 1" },
+            { text: "Option 2" },
+            { text: "Option 3" },
+            { text: "Option 4" }
+          ]
+        });
+      }
+
+      if (sectionEl && action === "paste-questions") {
+        const textarea = sectionEl.querySelector("[data-paste-questions]");
+        const pastedQuestions = textarea.value
+          .split(/\n+/)
+          .map(questionFromPastedLine)
+          .filter((question) => question.text);
+        paper.sections[Number(sectionEl.dataset.section)].questions.push(...pastedQuestions);
+        textarea.value = "";
+      }
+
+      if (sectionEl && questionEl && action === "remove-question") {
+        const section = paper.sections[Number(sectionEl.dataset.section)];
+        section.questions.splice(Number(questionEl.dataset.question), 1);
+      }
+
+      if (sectionEl && questionEl && action === "add-sub") {
+        const section = paper.sections[Number(sectionEl.dataset.section)];
+        const question = section.questions[Number(questionEl.dataset.question)];
+        question.subs.push({ text: "" });
+      }
+
+      if (sectionEl && questionEl && subEl && action === "remove-sub") {
+        const section = paper.sections[Number(sectionEl.dataset.section)];
+        const question = section.questions[Number(questionEl.dataset.question)];
+        question.subs.splice(Number(subEl.dataset.sub), 1);
+      }
+
+      renderEditor();
+      sync();
+    });
+
+    document.getElementById("chatInput")?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        document.getElementById("sendChat")?.click();
+      }
+    });
+
+    renderEditor();
+    renderChat();
+    renderMemory();
+    applyMode();
+    analyzeMarks();
+    checkServer();
+    loadModels();
+  </script>
+</body>
+</html>
