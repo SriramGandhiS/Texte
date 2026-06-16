@@ -1,7 +1,7 @@
 exports.handler = async () => {
   const headers = { "Content-Type": "application/json", "Cache-Control": "no-store" };
   try {
-    const { processApiRoute } = require("../../lib/ai-api");
+    const { processApiRoute } = require("../../lib/ai-core");
     const body = await processApiRoute("/api/models", {});
     return { statusCode: 200, headers, body: JSON.stringify(body) };
   } catch (error) {

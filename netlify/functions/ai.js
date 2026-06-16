@@ -33,7 +33,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { processApiRoute } = require("../../lib/ai-api");
+    const { processApiRoute } = require("../../lib/ai-core");
     const body = await processApiRoute("/api/ai", payload);
     return { statusCode: body.ok === false ? 500 : 200, headers, body: JSON.stringify(body) };
   } catch (error) {
